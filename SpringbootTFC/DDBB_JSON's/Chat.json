@@ -1,0 +1,25 @@
+{
+    "id": "chat123",
+    "participants": ["user123", "user456"],
+    "messages": [
+      {
+        "message_id": "msg123",
+        "chatId": "chat123",
+        "senderId": "user123",
+        "receiverId": "user456",
+        "content": "Hi, is the book still available?",
+        "timestamp": "2025-03-24T12:00:00",
+        "status" : "pending"
+      },
+      {
+        "message_id": "msg123",
+        "chatId": "chat123",
+        "senderId": "user123",
+        "receiverId": "user456",
+        "content": "Hi, is the book still available?",
+        "timestamp": "2025-03-24T12:00:00",
+        "status" : "pending"
+      }
+    ]
+  }
+  

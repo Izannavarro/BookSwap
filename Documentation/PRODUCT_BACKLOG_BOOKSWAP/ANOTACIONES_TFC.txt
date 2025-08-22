@@ -1,0 +1,419 @@
+Aquí se apuntarán todos los detalles/anotaciones durante el proceso de creación de BookSwap. --- 28/3/2025--
+
+
+ESTÉTICA:
+--Colores--
+Verde: #96cf24
+MARRON/NARANJA: #FFBD77
+Verde Oscuro: #006838
+MARRON/NARANJA Oscuro: #B25B00
+Negro
+Blanco
+GRIS CLARO: #EBEBEB
+
+IP PÚBLICA AWS: 
+13.219.87.204
+
+--tipografia--
+??
+
+PANTALLAS A DESARROLLAR:
+
+1-LOGIN.
+2-PANTALLA PRINCIPAL (MAPA).
+3-LIBROS PERTENECIENTES.
+4-FORMULARIO INTERCAMBIO.
+5-FORMULARIO PERFIL.
+6-AJUSTES.
+
+TABLAS DE BACKEND Y CAMPOS: 
+
+USER:
+{
+  "_id": "user123",
+  "name": "Carlos García",
+  "password": "123",
+  "profilePicture": "base64",
+  "address": "Calle Mayor, Madrid, Spain",
+  "coordinates": {
+    "lat": 40.4168,
+    "lng": -3.7038
+  },
+  "available_books": ["The Little Prince", "1984"],
+  "registration_date": "2025-03-24T10:00:00"
+}
+--------------------------------------------------------------------
+BOOK:
+{
+  "_id": "book123",
+  "title": "The Little Prince",
+  "author": "Antoine de Saint-Exupéry",
+  "genre": "Fiction",
+  "description": "A classic about the innocence and wisdom of a little traveling prince.",
+  "image_url": "base64",
+  "owner_username": "user123",
+  "publication_date": "2025-03-24T10:00:00"
+}
+--------------------------------------------------------------------
+EXCHANGE:
+{
+  "_id": "exchange123",
+  "book_id": "book123",
+  "owner_id": "user123",
+  "receiver_id": "user456",
+  "exchange_date": "2025-03-24T12:00:00",
+  "status": "pending"
+}
+--------------------------------------------------------------------
+CHAT:
+{
+  "_id": "chat123",
+  "participants": ["user123", "user456"],  // IDs de los usuarios que participan en el chat
+  "messages": [
+    {
+      "message_id": "msg123",
+      "sender_id": "user123",               // El usuario que envió el mensaje
+      "receiver_id": "user456",             // El usuario que recibe el mensaje
+      "content": "Hi, is the book still available?", // Texto del mensaje
+      "timestamp": "2025-03-24T12:00:00",   // Fecha y hora de envío
+      "status": "delivered"                 // Estado del mensaje: "delivered", "read", etc.
+    },
+    {
+      "message_id": "msg124",
+      "sender_id": "user456",
+      "receiver_id": "user123",
+      "content": "Yes, it's still available. Let's arrange the exchange.",
+      "timestamp": "2025-03-24T12:05:00",
+      "status": "delivered"
+    }
+  ]
+}
+--------------------------------------------------------------------
+CODIGO PROGRAMACIÓN: 
+
+--> CONSEGUIR COORDENADAS UBICACIÓN ACTUAL:
+
+import Geolocation from 'react-native-geolocation-service';
+
+Geolocation.getCurrentPosition(
+  (position) => {
+    const { latitude, longitude } = position.coords;
+    console.log('Your current location:', latitude, longitude);
+  },
+  (error) => {
+    console.log('Error getting location:', error);
+  },
+  { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+);
+
+--> CONSEGUIR COORDENADAS DE UNA UBICACIÓN POR PARÁMETRO Y MOSTRAR LA ZONA DEL MAPA DE LA UBICACIÓN + MARCADORES DE LAS COORDENADAS DE LOS USUARIOS:
+
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, Button } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+
+const App = () => {
+  // Estado para la ubicación del mapa
+  const [region, setRegion] = useState({
+    latitude: 40.4168,
+    longitude: -3.7038, // Madrid por defecto
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+
+  // Estado para el array de usuarios (puede ser un array dinámico)
+  const [users, setUsers] = useState([
+    { id: '1', name: 'User 1', lat: 40.4178, lng: -3.7038 },
+    { id: '2', name: 'User 2', lat: 40.4198, lng: -3.7058 },
+    { id: '3', name: 'User 3', lat: 40.4148, lng: -3.7078 },
+  ]);
+
+  const [searchLocation, setSearchLocation] = useState('');
+
+  // Función para manejar la búsqueda de ubicación
+  const searchLocationHandler = async () => {
+    if (!searchLocation) return;
+    
+    const apiKey = 'TU_CLAVE_API_GOOGLE'; // Sustituye por tu clave API de Google
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${searchLocation}&key=${apiKey}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.results.length > 0) {
+        const { lat, lng } = data.results[0].geometry.location;
+        setRegion({
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      } else {
+        alert('No se encontraron resultados');
+      }
+    } catch (error) {
+      console.error('Error en la búsqueda de ubicación', error);
+      alert('Error al buscar la ubicación');
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Mapa de Usuarios</Text>
+      
+      {/* Buscador de ubicación */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Buscar ubicación (Ej: Madrid)"
+        value={searchLocation}
+        onChangeText={setSearchLocation}
+      />
+      <Button title="Buscar ubicación" onPress={searchLocationHandler} />
+
+      {/* Mapa */}
+      <MapView
+        style={styles.map}
+        region={region}
+        onRegionChangeComplete={(newRegion) => setRegion(newRegion)}
+        showsUserLocation={true}
+        provider="google" // Asegúrate de establecer este campo a "google"
+      >
+        {/* Marcadores de los usuarios */}
+        {users.map((user) => (
+          <Marker
+            key={user.id}
+            coordinate={{ latitude: user.lat, longitude: user.lng }}
+            title={user.name}
+          />
+        ))}
+      </MapView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    marginBottom: 10,
+  },
+  searchInput: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    width: '80%',
+  },
+  map: {
+    width: '100%',
+    height: 400,
+  },
+});
+
+export default App;
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+POSIBLES METODOS DE LOS COMPONENTES:
+
+-BOOK:
+	· Coger todos los libros de la base de datos.
+	· Coger Info de un libro por ID al clickar.
+	· Ordenar libros en el FlatList por fecha de antigüedad/Reciente (opcional)
+
+-CHAT:
+	· Coger todos los chats de la base de datos.
+	· Al clickar sobre un chat, mostrar el historial de mensajes y poder añadir mensajes.
+	· Ordenar los chats por reciente. (opcional)
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+ENDPOINTS:
+
+--> Conseguir todos los mensajes de un "chatId" en específico ordenados por fecha de enviO.
+@GetMapping("/chat/messages")
+public ResponseEntity<?> getMessagesFromChat(@RequestParam("chatId") String chatId) {
+    Optional<Chat> chat = chatRepository.findById(chatId);
+    if (chat.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No existe ese chat.");
+    }
+
+    List<MessageInfo> messages = chat.get().getMessages().stream()
+        .sorted(Comparator.comparing(Message::getTimestamp))
+        .map(msg -> new MessageInfo(
+            msg.getSenderId(),
+            msg.getReceiverId(),
+            msg.getContent()
+        ))
+        .collect(Collectors.toList());
+
+    return ResponseEntity.ok(messages);
+}
+
+--> AÑADIR UN MENSAJE A UN CHAT:
+
+@PostMapping("/chat/message")
+public ResponseEntity<?> sendMessage(@RequestBody MessageDTO dto) {
+    Optional<Chat> optionalChat = chatRepository.findById(dto.getChatId());
+    if (optionalChat.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Chat no encontrado");
+    }
+
+    Chat chat = optionalChat.get();
+
+    Message message = new Message(
+        UUID.randomUUID().toString(),
+        dto.getSenderId(),
+        dto.getReceiverId(),
+        dto.getContent(),
+        LocalDateTime.now().toString()
+    );
+
+    chat.getMessages().add(message);
+    chatRepository.save(chat);
+
+    return ResponseEntity.ok(message);
+}
+
+
+--> AÑADIR LIBRO:
+
+@PostMapping("/book/add")
+public ResponseEntity<?> addBook(@RequestBody BookDTO bookDTO) {
+    Book book = new Book();
+    book.setTitle(bookDTO.getTitle());
+    book.setAuthor(bookDTO.getAuthor());
+    book.setPublicationDate(bookDTO.getPublicationDate());
+    book.setOwnerId(bookDTO.getOwnerId());
+    book.setCoverImage(bookDTO.getCoverImage());
+    
+    bookRepository.save(book);
+    return ResponseEntity.status(HttpStatus.CREATED).build();
+}
+
+--> CARGAR TODOS LOS CHATS DE UN USUARIO ESPECÍFICO:
+@GetMapping("/chat/byUser")
+public ResponseEntity<?> getChatsByUserId(@RequestParam String userId) {
+    List<Chat> chats = chatRepository.findByParticipantId(userId);
+    return ResponseEntity.ok(chats);
+}
+
+--> CREAR UN CHAT NUEVO: 
+
+@PostMapping("/createChat")
+public ResponseEntity<?> createChat(@RequestParam String userId1, @RequestParam String userId2) {
+    Optional<Chat> existingChat = chatRepository.findByParticipants(userId1, userId2);
+    if (existingChat.isPresent()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Ya existe un chat entre estos dos usuarios.");
+    }
+
+    // Crear un nuevo chat
+    Chat newChat = new Chat(List.of(userId1, userId2), new ArrayList<>());
+    chatRepository.save(newChat);
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(newChat);
+}
+
+
+--> Para crear un intercambio: 
+
+    @PostMapping("/create")
+    public ResponseEntity<?> createExchange(@RequestBody ExchangeDTO exchangeDTO) {
+        Exchange newExchange = new Exchange(
+            exchangeDTO.getBook_id(),
+            exchangeDTO.getOwner_id(),
+            exchangeDTO.getReceiver_id(),
+            "pending",  // El estado siempre se pone en "pending" cuando se crea
+            exchangeDTO.getExchange_date()
+        );
+        exchangeRepository.save(newExchange);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newExchange);
+    }
+
+--> Endpoint para obtener todos los intercambios pendientes de un receptor
+    @GetMapping("/pendingReceiver")
+    public ResponseEntity<List<Exchange>> getPendingExchangesForReceiver(@RequestParam String receiverId) {
+        List<Exchange> pendingExchanges = exchangeRepository.findByReceiver_idAndStatus(receiverId, "pending");
+        if (pendingExchanges.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        return ResponseEntity.ok(pendingExchanges);
+    }
+
+
+--> Endpoint para cambiar el estado del intercambio a "finished"
+    @PatchMapping("/finish/{id}")
+    public ResponseEntity<?> finishExchange(@PathVariable String id) {
+        Exchange exchange = exchangeRepository.findById(id).orElse(null);
+        if (exchange == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Intercambio no encontrado");
+        }
+        exchange.setStatus("finished");
+        exchangeRepository.save(exchange);
+        return ResponseEntity.ok(exchange);
+    }
+
+--> BORRAR LIBRO/USUARIO/EXCHANGE:
+@DeleteMapping("/book/{id}") --> (DELETE http://localhost:8080/book/abc123)
+public ResponseEntity<?> deleteBook(@PathVariable String id) {
+    if (!bookRepository.existsById(id)) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Libro no encontrado");
+    }
+
+    bookRepository.deleteById(id);
+    return ResponseEntity.ok("Libro eliminado correctamente");
+}
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+FRONTEND:
+
+LIBRERIAS REACT-NATIVE:
+npm install react-native-maps
+npm install react-native-geocoding
+npm install react-native-geolocation-service (calcular rutas, necesita aceptar permisos de ubi)
+npm install axios
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+
+--> MÉTODOS PARA LAS TRANSICIONES DE UN INTERCAMBIO: 
+
+import axios from 'axios';
+
+// Crear un intercambio (dueño crea el intercambio con status "pending")
+const createExchange = async (exchangeData) => {
+  try {
+    const response = await axios.post('http://localhost:8080/exchange/create', exchangeData);
+    console.log(response.data); // Ver el intercambio creado
+  } catch (error) {
+    console.error("Error creating exchange:", error);
+  }
+};
+
+// Obtener intercambios pendientes para el receptor
+const getPendingExchanges = async (receiverId) => {
+  try {
+    const response = await axios.get(`http://localhost:8080/exchange/pendingReceiver?receiverId=${receiverId}`);
+    console.log(response.data); // Mostrar intercambios pendientes
+  } catch (error) {
+    console.error("Error fetching pending exchanges:", error);
+  }
+};
+
+// Marcar intercambio como "finished"
+const finishExchange = async (exchangeId) => {
+  try {
+    const response = await axios.patch(`http://localhost:8080/exchange/finish/${exchangeId}`);
+    console.log("Intercambio finalizado:", response.data);
+  } catch (error) {
+    console.error("Error finishing exchange:", error);
+  }
+};
+
+-->

@@ -1,0 +1,9 @@
+{
+    "id": "exchange123",
+    "bookId": "book123",
+    "ownerId": "user123",
+    "receiverId": "user456",
+    "status": "pending", 
+    "exchangeDate": "2025-03-24T12:00:00"
+  }
+  

@@ -1,0 +1,9 @@
+{
+    "id": "user123",
+    "username": "Carlos García",
+    "password": "hashcontra",
+    "profilePicture": "base64",
+    "address": "C Juan",
+    "lat": 40.4168,
+    "lng": -3.7038
+}
